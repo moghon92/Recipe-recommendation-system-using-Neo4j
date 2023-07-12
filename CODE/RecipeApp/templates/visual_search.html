@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %} Visual Search {% endblock %}
+
+{% block jQueryPlugin %}
+<script type="text/javascript" src="/static/js/d3.v5.min.js"></script>
+<script type="text/javascript" src="/static/js/d3-tip.min.js"></script>
+<script type="text/javascript" src="/static/js/d3-recipe-graphs.js"></script>
+{% endblock %}
+
+{% block navbarContent %}
+<ul class="menu-area-main">
+    <li>
+        <a>User ID: {{ user_id }}</a>
+    <li>
+    <li class="active">
+        <a href="{{ url_for('main.initial_search', user_id=user_id, db_connected=db_connected) }}">Home</a>
+    </li>
+    <li>
+        <a href="{{ url_for('auth.logout') }}">
+            <img class="logout_btn" src="/static/icon/logout.png" alt="logout"/>
+        </a>
+    </li>
+</ul>
+{% endblock %}
+
+{% block bodyContent %}
+<form id="recipeForm" style="margin-left:1em"
+      action="{{ url_for('visualSearch.matching_recipes', user_id=user_id, main_ingredients=main_ingredients, side_ingredients=side_ingredients) }}"
+      method="POST">
+    <button id="tab_btn_rec" class="tablink" type="submit" name="tab_type" value="recipe">
+        Recommend Recipes
+    </button>
+    <button id="tab_btn_ing" class="tablink" type="submit" name="tab_type" value="ingredient">
+        Additional Ingredients
+    </button>
+
+    <div style="padding-left: 12.5%; padding-right: 12.5%">
+        <!--Q2-->
+        <button id="tab_btn_cnt" style="display: none" class="tablink" type="submit" name="tab_type"
+                value="contentBased">
+            Filtered By My Review History
+        </button>
+        <!--Q3-->
+        <button id="tab_btn_col" style="display: none" class="tablink" type="submit" name="tab_type"
+                value="collaborative">
+            Filtered By Similar User's Reviews
+        </button>
+    </div>
+
+    <div style="padding-left: 41.5%; padding-right: 25%">
+        <!--Q4 Confirm-->
+        <button id="tab_btn_ing_cfm" style="display: none" class="tablink" type="submit" name="tab_type"
+                value="add_ingredient"
+                disabled=true>
+            Confirm Selection
+        </button>
+    </div>
+    <input style="display: none" id="addedSideIngredients" type="text" name="add_ingredients">
+</form>
+<div id="recipeGraph"></div>
+
+
+<script>
+    // handle tab vis
+    var selectedTab = {{tab_type | tojson}};
+    openTab(selectedTab);
+
+    // handle query data
+    var graphData = {{result.data | safe}},
+        nodes = {},
+        links = [];
+    nodes[0] = {name: 'Input Ingredients', id: 0};
+
+    if (selectedTab !== "ingredient") {
+        graphData.forEach(function (data) {
+            nodes[data.recipeID] = {name: data.recipeName, id: data.recipeID};
+            links.push({source: nodes[0], target: nodes[data.recipeID]});
+        });
+
+        draw_graph_q1(nodes, links, "#recipeGraph");
+    } else {
+        graphData.forEach(function (data) {
+            nodes[data.ingredientID] = {name: data.ingredientName, id: data.ingredientID};
+            links.push({source: nodes[0], target: nodes[data.ingredientID]});
+        });
+
+        draw_graph_q4(nodes, links, "#recipeGraph");
+    }
+</script>
+{% endblock %}
